@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sepsis ICU Mortality Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0b0f1a;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --border: #1e2d45;
+  --accent: #00d4ff;
+  --accent2: #7c3aed;
+  --accent3: #f59e0b;
+  --danger: #ef4444;
+  --success: #10b981;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:15px;
+  min-height:100vh; overflow-x:hidden;
+}
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(0,212,255,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 85% 75%, rgba(124,58,237,.07) 0%, transparent 60%);
+  pointer-events:none; z-index:0;
+}
+.wrapper { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:0 24px; }
+
+/* ─── NAV ─── */
+nav {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 0; border-bottom:1px solid var(--border);
+  margin-bottom:0;
+}
+.nav-logo {
+  display:flex; align-items:center; gap:10px;
+  font-family:var(--font-display); font-size:1.1rem; color:#fff;
+  text-decoration:none;
+}
+.nav-logo-dot {
+  width:10px; height:10px; border-radius:50%;
+  background:var(--accent); animation:pulse 2s infinite;
+}
+.nav-links { display:flex; gap:28px; align-items:center; }
+.nav-links a {
+  color:var(--muted); text-decoration:none; font-size:13.5px;
+  font-weight:500; transition:color .2s;
+}
+.nav-links a:hover { color:var(--text); }
+.nav-cta {
+  background:rgba(0,212,255,.1); border:1px solid rgba(0,212,255,.25);
+  color:var(--accent) !important; padding:8px 20px;
+  border-radius:8px; transition:all .2s !important;
+}
+.nav-cta:hover { background:rgba(0,212,255,.18) !important; }
+
+/* ─── HERO ─── */
+.hero {
+  text-align:center; padding:100px 0 80px;
+  animation:fadeDown .8s ease both;
+}
+.hero-tag {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(0,212,255,.08); border:1px solid rgba(0,212,255,.2);
+  color:var(--accent); padding:7px 18px; border-radius:100px;
+  font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  margin-bottom:28px;
+}
+.hero-tag::before {
+  content:''; width:6px; height:6px; border-radius:50%;
+  background:var(--accent); animation:pulse 2s infinite;
+}
+.hero h1 {
+  font-family:var(--font-display);
+  font-size:clamp(2.8rem, 7vw, 5rem);
+  line-height:1.08; margin-bottom:20px;
+  background:linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hero p {
+  color:var(--muted); font-size:1.05rem; font-weight:300;
+  max-width:580px; margin:0 auto 40px; line-height:1.75;
+}
+.hero-btns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+.btn-primary {
+  background:linear-gradient(135deg, #00d4ff, #0099cc);
+  color:#0b0f1a; font-family:var(--font-body);
+  font-size:15px; font-weight:700; padding:15px 40px;
+  border:none; border-radius:12px; cursor:pointer;
+  letter-spacing:.04em; text-transform:uppercase;
+  transition:all .25s; box-shadow:0 0 30px rgba(0,212,255,.25);
+  text-decoration:none; display:inline-block;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 40px rgba(0,212,255,.45); }
+.btn-outline {
+  background:transparent; border:1px solid var(--border);
+  color:var(--text); font-family:var(--font-body);
+  font-size:14px; font-weight:500; padding:15px 32px;
+  border-radius:12px; cursor:pointer; transition:all .2s;
+  text-decoration:none; display:inline-block;
+}
+.btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ─── MODEL STATS BAR ─── */
+.stats-bar {
+  display:flex; gap:0; border:1px solid var(--border);
+  border-radius:16px; overflow:hidden; margin-bottom:80px;
+  animation:fadeUp .7s .2s ease both;
+}
+.stat-block {
+  flex:1; padding:24px 28px; border-right:1px solid var(--border);
+  text-align:center; background:var(--surface);
+  transition:background .2s;
+}
+.stat-block:last-child { border-right:none; }
+.stat-block:hover { background:var(--surface2); }
+.stat-num {
+  font-family:var(--font-display); font-size:2.4rem;
+  color:#fff; margin-bottom:4px; line-height:1;
+}
+.stat-num span { font-size:1.4rem; }
+.stat-label { font-size:12px; color:var(--muted); font-weight:500; letter-spacing:.04em; }
+.stat-accent { color:var(--accent); }
+.stat-accent2 { color:var(--accent3); }
+.stat-accent3 { color:#a78bfa; }
+.stat-accent4 { color:var(--success); }
+
+/* ─── HOW IT WORKS ─── */
+.section { padding:60px 0; }
+.section-tag {
+  font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:12px;
+}
+.section h2 {
+  font-family:var(--font-display); font-size:clamp(1.8rem, 4vw, 2.8rem);
+  color:#fff; margin-bottom:16px; line-height:1.2;
+}
+.section p.lead {
+  color:var(--muted); font-size:1rem; line-height:1.75;
+  max-width:560px; margin-bottom:48px;
+}
+
+.steps-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:24px;
+}
+.step-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:18px; padding:28px;
+  transition:border-color .2s, transform .2s;
+  animation:fadeUp .6s ease both;
+}
+.step-card:hover { border-color:var(--accent); transform:translateY(-4px); }
+.step-num {
+  width:40px; height:40px; border-radius:10px;
+  background:rgba(0,212,255,.1); border:1px solid rgba(0,212,255,.2);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-size:1.1rem; color:var(--accent);
+  margin-bottom:18px;
+}
+.step-card h3 { font-family:var(--font-display); font-size:1.15rem; color:#fff; margin-bottom:10px; }
+.step-card p { color:var(--muted); font-size:13.5px; line-height:1.7; }
+
+/* ─── MODEL SECTION ─── */
+.model-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.model-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:18px; padding:28px; text-align:center;
+  transition:all .2s; animation:fadeUp .6s ease both;
+}
+.model-card:hover { border-color:var(--border); transform:translateY(-3px); }
+.model-icon {
+  width:52px; height:52px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; margin:0 auto 16px;
+}
+.model-card h3 { font-family:var(--font-display); font-size:1.1rem; color:#fff; margin-bottom:6px; }
+.model-card .auc-badge {
+  display:inline-block; padding:5px 14px; border-radius:100px;
+  font-size:13px; font-weight:700; margin-bottom:12px;
+}
+.model-card p { color:var(--muted); font-size:13px; line-height:1.65; }
+
+/* ─── DISCLAIMER BANNER ─── */
+.disclaimer {
+  background:rgba(245,158,11,.06); border:1px solid rgba(245,158,11,.2);
+  border-radius:14px; padding:20px 24px; margin:60px 0;
+  display:flex; gap:16px; align-items:flex-start;
+}
+.disclaimer-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+.disclaimer p { color:rgba(245,158,11,.85); font-size:13px; line-height:1.7; }
+.disclaimer strong { color:var(--accent3); }
+
+/* ─── FOOTER ─── */
+footer {
+  border-top:1px solid var(--border); padding:32px 0;
+  display:flex; justify-content:space-between; align-items:center;
+  flex-wrap:wrap; gap:12px;
+}
+footer p { color:var(--muted); font-size:13px; }
+footer .footer-links { display:flex; gap:20px; }
+footer .footer-links a { color:var(--muted); font-size:13px; text-decoration:none; transition:color .2s; }
+footer .footer-links a:hover { color:var(--accent); }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeDown {
+  from { opacity:0; transform:translateY(-20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.5; transform:scale(1.5); }
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width:768px) {
+  .steps-grid, .model-cards { grid-template-columns:1fr; }
+  .stats-bar { flex-direction:column; }
+  .stat-block { border-right:none; border-bottom:1px solid var(--border); }
+  .stat-block:last-child { border-bottom:none; }
+  nav .nav-links { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="/">
+      <span class="nav-logo-dot"></span>
+      SepsisPredict ICU
+    </a>
+    <div class="nav-links">
+      <a href="#how-it-works">How It Works</a>
+      <a href="#models">Models</a>
+      <a href="/health">System Status</a>
+      <a href="/predictdata" class="nav-cta">Launch Predictor →</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-tag">🏥 ICU Clinical Decision Support</div>
+    <h1>Sepsis Mortality<br/>Risk Predictor</h1>
+    <p>
+      A machine-learning ensemble trained on MIMIC-IV ICU data to estimate
+      in-hospital mortality risk for sepsis patients — helping clinicians
+      identify high-risk patients earlier.
+    </p>
+    <div class="hero-btns">
+      <a href="/predictdata" class="btn-primary">⚡ Start Prediction</a>
+      <a href="#how-it-works" class="btn-outline">Learn More</a>
+    </div>
+  </section>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-block">
+      <div class="stat-num stat-accent">
+        {{ "%.0f"|format((config.test_auc or 0.8354) * 100) }}<span>%</span>
+      </div>
+      <div class="stat-label">Model AUC Score</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-num stat-accent2">8,704</div>
+      <div class="stat-label">MIMIC-IV Patients</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-num stat-accent3">47</div>
+      <div class="stat-label">Clinical Features</div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-num stat-accent4">XGB</div>
+      <div class="stat-label">Best Model</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works">
+    <div class="section-tag">Process</div>
+    <h2>How It Works</h2>
+    <p class="lead">
+      Enter patient vitals, lab values, and clinical context.
+      The model returns a calibrated mortality probability in seconds.
+    </p>
+    <div class="steps-grid">
+      <div class="step-card" style="animation-delay:.0s">
+        <div class="step-num">1</div>
+        <h3>Enter Patient Data</h3>
+        <p>Input demographics, SOFA score, vital signs (min/max/mean),
+           lab results, comorbidities, and antibiotic class.</p>
+      </div>
+      <div class="step-card" style="animation-delay:.1s">
+        <div class="step-num">2</div>
+        <h3>Model Inference</h3>
+        <p>Data is scaled using the training preprocessor, then passed to
+           the tuned XGBoost classifier for probability estimation.</p>
+      </div>
+      <div class="step-card" style="animation-delay:.2s">
+        <div class="step-num">3</div>
+        <h3>Risk Stratification</h3>
+        <p>The predicted probability is compared against the F2-optimised
+           threshold and classified as Low / Moderate / High / Critical.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODELS -->
+  <section class="section" id="models">
+    <div class="section-tag">Models</div>
+    <h2>Model Performance</h2>
+    <p class="lead">
+      Trained with stratified splits, SMOTE oversampling, and
+      RandomizedSearchCV hyperparameter tuning.
+    </p>
+    <div class="model-cards">
+      <div class="model-card" style="animation-delay:.0s">
+        <div class="model-icon" style="background:rgba(0,212,255,.1);">🚀</div>
+        <h3>XGBoost</h3>
+        <div class="auc-badge" style="background:rgba(0,212,255,.1);color:#00d4ff;">
+          AUC {{ "%.4f"|format(config.test_auc or 0.8354) }}
+        </div>
+        <p>Best performing model. Gradient boosted trees with L1/L2
+           regularisation and F2-threshold tuning for high recall.</p>
+      </div>
+      <div class="model-card" style="animation-delay:.1s">
+        <div class="model-icon" style="background:rgba(245,158,11,.1);">🌲</div>
+        <h3>Random Forest</h3>
+        <div class="auc-badge" style="background:rgba(245,158,11,.1);color:#f59e0b;">
+          AUC 0.8297
+        </div>
+        <p>Robust ensemble of decision trees. Used in experiment_1
+           comparison. High precision, moderate recall.</p>
+      </div>
+      <div class="model-card" style="animation-delay:.2s">
+        <div class="model-icon" style="background:rgba(167,139,250,.1);">⚡</div>
+        <h3>LightGBM</h3>
+        <div class="auc-badge" style="background:rgba(167,139,250,.1);color:#a78bfa;">
+          AUC 0.8342
+        </div>
+        <p>Leaf-wise gradient boosting. Fast training, competitive AUC.
+           Included in experiment_1 evaluation suite.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    <div class="disclaimer-icon">⚠️</div>
+    <p>
+      <strong>Clinical Decision Support Only.</strong>
+      This tool is intended to assist — not replace — clinical judgement.
+      All predictions must be interpreted in full clinical context by a
+      licensed healthcare professional. Not validated for direct patient
+      care decisions without institutional review.
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 SepsisPredict ICU · MIMIC-IV Dataset · XGBoost Pipeline</p>
+    <div class="footer-links">
+      <a href="/predictdata">Predictor</a>
+      <a href="/health">Health Check</a>
+      <a href="/retrain">Retrain Model</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
